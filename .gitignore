@@ -1,0 +1,64 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# Water Sense Mobile - Arquivos temporários e de teste
+# Evita que arquivos de teste sejam commitados no futuro
+teste_*.html
+teste_*.php
+diagnostico_*.php
+verificar_*.php
+corrigir_*.php
+criar_*_teste.php
+remover_*.php
+test_*.php
+*.tmp
+*.temp
+.htaccess
+
+# Logs específicos do projeto
+app_logs/
+*.log
+
+# Arquivos de backup
+*.bak
+*.backup
+*~
+
+# Configurações locais sensíveis
+config_local.php
+credenciais_*.php
