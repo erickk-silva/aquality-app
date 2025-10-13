@@ -248,7 +248,8 @@ function buscar_historico($conexao, $usuario_id, $dispositivo_id, $limit, $offse
         }
         
         // Conta total de registros para paginação
-        $sql_count = "SELECT COUNT(*) as total FROM leitura l WHERE l.dispositivo_id = ?";
+        $sql_count = "SELECT COUNT(*) as total FROM leitura l 
+                      WHERE l.dispositivo_id = ?";
         $count_params = [$dispositivo_id];
         $count_types = "i";
         
@@ -322,7 +323,7 @@ function buscar_estatisticas($conexao, $usuario_id, $dispositivo_id, $data_inici
                     MIN(l.data_hora) as primeira_leitura,
                     MAX(l.data_hora) as ultima_leitura
                 FROM dispositivos d
-                LEFT JOIN leitura l ON d.id = l.dispositivo_id
+                LEFT JOIN leitura l ON d.id = l.dispositivo_id 
                 WHERE d.usuario_id = ?";
         
         $params = [$usuario_id];

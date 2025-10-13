@@ -41,37 +41,7 @@ export const Login: React.FC = () => {
     }
   };
 
-  const fillDefaultCredentials = () => {
-    setEmail('aquality@tcc.com');
-    setPassword('aqua@123');
-  };
 
-  const testApiConnection = async () => {
-    try {
-      // Test basic API connectivity
-      const response = await fetch('https://tcc3eetecgrupo5t1.hospedagemdesites.ws/web/app/api_mobile/usuarios/login.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: 'test', senha: 'test' })
-      });
-      
-      const data = await response.json();
-      
-      Alert.alert(
-        'Teste de Conectividade',
-        `Status: ${response.status}\nResposta: ${JSON.stringify(data, null, 2)}`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert(
-        'Erro de Conectividade',
-        `Erro: ${error}\nVerifique sua conexão com a internet.`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
 
   const navigateToSignup = () => {
     navigation.navigate('Signup' as never);
@@ -121,36 +91,12 @@ export const Login: React.FC = () => {
             <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.fillCredentialsButton}
-            onPress={fillDefaultCredentials}
-          >
-            <Text style={styles.fillCredentialsText}>
-              Usar credenciais de teste
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.testApiButton}
-            onPress={testApiConnection}
-          >
-            <Text style={styles.testApiText}>
-              Testar Conexão API
-            </Text>
-          </TouchableOpacity>
-          
           {/* Botão para criar nova conta */}
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Não tem uma conta? </Text>
             <TouchableOpacity onPress={navigateToSignup}>
               <Text style={styles.signupLink}>Cadastre-se aqui</Text>
             </TouchableOpacity>
-          </View>
-          
-          <View style={styles.credentialsInfo}>
-            <Text style={styles.credentialsTitle}>Credenciais de teste:</Text>
-            <Text style={styles.credentialsText}>Email: aquality@tcc.com</Text>
-            <Text style={styles.credentialsText}>Senha: aqua@123</Text>
           </View>
         </View>
       </View>
@@ -219,53 +165,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
-  fillCredentialsButton: {
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    padding: spacing.sm,
-    backgroundColor: `${colors.water.primary}10`,
-    borderRadius: borderRadius.lg,
-  },
-  fillCredentialsText: {
-    color: colors.water.primary,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-  },
-  testApiButton: {
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    padding: spacing.sm,
-    backgroundColor: `${colors.warning}20`,
-    borderRadius: borderRadius.lg,
-  },
-  testApiText: {
-    color: colors.warning,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-  },
-  credentialsInfo: {
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: colors.muted,
-    borderRadius: borderRadius.lg,
-  },
-  credentialsTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.foreground,
-    marginBottom: spacing.xs,
-  },
-  credentialsText: {
-    fontSize: typography.sizes.sm,
-    color: colors.mutedForeground,
-    marginBottom: spacing.xs,
-  },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.lg,
-    marginBottom: spacing.md,
   },
   signupText: {
     fontSize: typography.sizes.sm,

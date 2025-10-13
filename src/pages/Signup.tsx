@@ -151,7 +151,7 @@ export const Signup: React.FC = () => {
           {/* Título principal */}
           <Text style={styles.title}>Criar Conta</Text>
           <Text style={styles.subtitle}>
-            Preencha os dados abaixo para criar sua conta no Water Sense
+            Preencha os dados abaixo para criar sua conta no A-Quality
           </Text>
           
           {/* Formulário */}
@@ -280,7 +280,7 @@ export const Signup: React.FC = () => {
 
             {/* Informações adicionais */}
             <View style={styles.infoContainer}>
-              <Text style={styles.infoTitle}>Sobre o Water Sense:</Text>
+              <Text style={styles.infoTitle}>Sobre o A-Quality:</Text>
               <Text style={styles.infoText}>
                 Sistema de monitoramento de qualidade da água em tempo real usando sensores IoT.
               </Text>

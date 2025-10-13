@@ -21,6 +21,8 @@ import { Signup } from './src/pages/Signup';
 import { MainTabs } from './src/navigation/MainTabs';
 // Importa o provider e hook do contexto de autenticação
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+// Importa o serviço de notificações
+import { notificationService } from './src/services/notificationService';
 
 // Cria o objeto de navegação em pilha
 const Stack = createStackNavigator();
@@ -65,6 +67,19 @@ const AppNavigator = () => {
 
 // Componente principal do app, responsável por envolver toda a aplicação com os providers globais
 export default function App() {
+  // Inicializar notificações quando o app carrega
+  React.useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        await notificationService.initialize();
+      } catch (error) {
+        console.error('Erro ao inicializar notificações:', error);
+      }
+    };
+
+    initNotifications();
+  }, []);
+
   return (
     // Provider do React Query para gerenciamento de cache e requisições
     <QueryClientProvider client={queryClient}>

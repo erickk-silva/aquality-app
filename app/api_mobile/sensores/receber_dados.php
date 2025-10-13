@@ -117,8 +117,16 @@ try {
     // Commit da transação
     $conexao->commit();
     
-    // Verifica se os valores estão fora dos limites para gerar alertas
-    $alertas_gerados = verificar_e_gerar_alertas($conexao, $dispositivo_id, $ph, $turbidez, $condutividade, $temperatura);
+    // Processa alertas usando o novo sistema de regras
+    require_once __DIR__ . '/processar_alertas.php';
+    $resultado_alertas = processarAlertasParaLeitura($conexao, $dispositivo_id, [
+        'ph' => $ph,
+        'turbidez' => $turbidez,
+        'condutividade' => $condutividade,
+        'temperatura' => $temperatura
+    ]);
+    
+    $alertas_gerados = $resultado_alertas['status'] === 'sucesso' ? $resultado_alertas['ids_alertas'] : [];
     
     // Log de sucesso
     log_error('Dados do sensor recebidos e processados com sucesso', [

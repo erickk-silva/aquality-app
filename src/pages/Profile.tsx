@@ -9,6 +9,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Edit, ChevronRight, User, Mail, Phone, MapPin, Calendar, Lock } from 'lucide-react-native';
 import { MobileHeader } from '../components/MobileHeader';
@@ -27,6 +28,7 @@ export const Profile: React.FC = () => {
   const navigation = useNavigation<any>();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,8 +65,10 @@ export const Profile: React.FC = () => {
     navigation.navigate('EditProfile', { profileData });
   };
 
-  const handleRefresh = () => {
-    loadProfileData();
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadProfileData();
+    setRefreshing(false);
   };
 
   const handleLogout = () => {
@@ -367,6 +371,16 @@ export const Profile: React.FC = () => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              colors={[colors.water.primary]}
+              tintColor={colors.water.primary}
+              title="Atualizando perfil..."
+              titleColor={colors.mutedForeground}
+            />
+          }
         >
           <View style={styles.content}>
             {error && (

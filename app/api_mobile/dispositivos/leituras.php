@@ -123,7 +123,8 @@ try {
     }
     
     // Conta total de leituras
-    $sql_count = "SELECT COUNT(*) as total FROM leitura WHERE dispositivo_id = ?";
+    $sql_count = "SELECT COUNT(*) as total FROM leitura 
+                  WHERE dispositivo_id = ?";
     $stmt_count = $conexao->prepare($sql_count);
     $stmt_count->bind_param("i", $dispositivo_id);
     $stmt_count->execute();

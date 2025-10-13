@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Wifi,
   Moon,
-  Sun
+  Sun,
+  Settings as SettingsIcon
 } from 'lucide-react-native';
 import { MobileHeader } from '../components/MobileHeader';
 import { colors, typography, spacing, borderRadius, shadows } from '../utils/colors';
@@ -39,8 +40,14 @@ const settingsSections = [
       {
         icon: 'Bell',
         title: 'Notificações',
-        subtitle: 'Gerenciar alertas',
+        subtitle: 'Ver alertas recebidos',
         route: 'Notifications',
+      },
+      {
+        icon: 'Settings',
+        title: 'Regras de Alerta',
+        subtitle: 'Configurar alertas automáticos',
+        route: 'AlertRules',
       },
     ],
   },
@@ -186,6 +193,8 @@ export const Settings: React.FC = () => {
         return <Sun {...iconProps} />;
       case 'Wifi':
         return <Wifi {...iconProps} />;
+      case 'Settings':
+        return <SettingsIcon {...iconProps} />;
       default:
         return <User {...iconProps} />;
     }

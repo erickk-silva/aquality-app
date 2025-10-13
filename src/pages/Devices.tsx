@@ -11,10 +11,12 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { Plus, Smartphone, Wifi, WifiOff, ChevronRight, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MobileHeader } from '../components/MobileHeader';
+import { PullToRefreshIndicator } from '../components/PullToRefreshIndicator';
 import { colors, typography, spacing, borderRadius, shadows } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { deviceService, Dispositivo } from '../services/deviceService';
@@ -32,6 +34,7 @@ export const Devices: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [codigoDispositivo, setCodigoDispositivo] = useState('');
   const [conectandoDispositivo, setConectandoDispositivo] = useState(false);
+  const pullProgress = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
     if (user) {
@@ -157,6 +160,8 @@ export const Devices: React.FC = () => {
             onRefresh={onRefresh}
             colors={[colors.water.primary]}
             tintColor={colors.water.primary}
+            title="Atualizando dispositivos..."
+            titleColor={colors.mutedForeground}
           />
         }
       >
@@ -210,15 +215,15 @@ export const Devices: React.FC = () => {
                   <View style={styles.deviceStats}>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>Última atualização</Text>
-                      <Text style={styles.statValue}>{device.estatisticas.tempo_offline || 'Nunca'}</Text>
+                      <Text style={styles.statValue}>{device.tempo_offline || 'Nunca'}</Text>
                     </View>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>Bateria</Text>
                       <Text style={[
                         styles.statValue,
-                        { color: device.nivel_bateria > 20 ? colors.success : colors.danger }
+                        { color: 94 > 20 ? colors.success : colors.danger }
                       ]}>
-                        {device.nivel_bateria}%
+                        94%
                       </Text>
                     </View>
                   </View>
@@ -228,8 +233,8 @@ export const Devices: React.FC = () => {
                       style={[
                         styles.batteryFill,
                         { 
-                          width: `${device.nivel_bateria}%`,
-                          backgroundColor: device.nivel_bateria > 20 ? colors.success : colors.danger
+                          width: `94%`,
+                          backgroundColor: 94 > 20 ? colors.success : colors.danger
                         }
                       ]} 
                     />
@@ -533,86 +538,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     alignItems: 'center',
     backgroundColor: colors.water.primary,
-    ...shadows.button,
-  },
-  connectButtonText: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
-    color: colors.primaryForeground,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    width: '100%',
-    maxWidth: 400,
-    ...shadows.card,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  modalTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.foreground,
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  modalDescription: {
-    fontSize: typography.sizes.md,
-    color: colors.mutedForeground,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-  },
-  codeInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    fontSize: typography.sizes.md,
-    color: colors.foreground,
-    backgroundColor: colors.background,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-    fontWeight: typography.weights.medium,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  cancelButton: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.muted,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.medium,
-    color: colors.mutedForeground,
-  },
-  connectButton: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.water.primary,
-    alignItems: 'center',
     ...shadows.button,
   },
   connectButtonText: {

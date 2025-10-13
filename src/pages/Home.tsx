@@ -7,6 +7,7 @@ import {
   Dimensions,
   RefreshControl,
   Alert,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MobileHeader } from '../components/MobileHeader';
@@ -14,6 +15,7 @@ import { AnalysisCard } from '../components/AnalysisCard';
 import { LocationCard } from '../components/LocationCard';
 import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { DeviceSwitchCard } from '../components/DeviceSwitchCard';
+import { PullToRefreshIndicator } from '../components/PullToRefreshIndicator';
 import { useToast } from '../hooks/useToast';
 import { colors, typography, spacing } from '../utils/colors';
 import { useThemeMode } from '../contexts/ThemeContext';
@@ -35,6 +37,7 @@ export const Home: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const pullProgress = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
     if (user) {
@@ -63,6 +66,9 @@ export const Home: React.FC = () => {
           try {
             console.log(`🏠 Processando dispositivo ${index + 1}:`, dispositivo);
             
+            // Usa o status que vem da API (já calculado corretamente)
+            const statusCalculado = dispositivo?.status || 'offline';
+            
             // Cria um objeto básico com valores padrão seguros
             const dispositivoSeguro: Dispositivo = {
               id: dispositivo?.id || index + 1,
@@ -74,8 +80,8 @@ export const Home: React.FC = () => {
                 latitude: 0,
                 longitude: 0
               },
-              status: (dispositivo?.status === 'online') ? 'online' : 'offline',
-              nivel_bateria: dispositivo?.nivel_bateria || 0,
+              status: statusCalculado,
+              nivel_bateria: 94, // Valor fixo ilustrativo
               versao_firmware: '1.0',
               leitura_atual: undefined,
               estatisticas: {
@@ -93,30 +99,40 @@ export const Home: React.FC = () => {
             // Processa a leitura atual se existir
             if (dispositivo?.leitura_atual) {
               const leitura = dispositivo.leitura_atual;
+              console.log('🔍 Processando leitura:', leitura);
+              
+              const processarValor = (valor: any) => {
+                if (valor === null || valor === undefined || valor === '') return null;
+                const num = Number(valor);
+                return isNaN(num) ? null : num;
+              };
+              
               dispositivoSeguro.leitura_atual = {
                 ph: {
-                  valor: Number(leitura.ph?.valor) || 0,
-                  status: leitura.ph?.status || 'normal',
-                  unidade: ''
+                  valor: processarValor(leitura.ph?.valor),
+                  status: leitura.ph?.status || 'unknown',
+                  unidade: leitura.ph?.unidade || ''
                 },
                 turbidez: {
-                  valor: Number(leitura.turbidez?.valor) || 0,
-                  status: leitura.turbidez?.status || 'normal',
-                  unidade: 'NTU'
+                  valor: processarValor(leitura.turbidez?.valor),
+                  status: leitura.turbidez?.status || 'unknown',
+                  unidade: leitura.turbidez?.unidade || '%'
                 },
                 condutividade: {
-                  valor: Number(leitura.condutividade?.valor) || 0,
-                  status: leitura.condutividade?.status || 'normal',
-                  unidade: ''
+                  valor: processarValor(leitura.condutividade?.valor),
+                  status: leitura.condutividade?.status || 'unknown',
+                  unidade: leitura.condutividade?.unidade || ''
                 },
                 temperatura: {
-                  valor: Number(leitura.temperatura?.valor) || 0,
-                  status: leitura.temperatura?.status || 'normal',
-                  unidade: '°C'
+                  valor: processarValor(leitura.temperatura?.valor),
+                  status: leitura.temperatura?.status || 'unknown',
+                  unidade: leitura.temperatura?.unidade || '°C'
                 },
                 timestamp: leitura.timestamp || new Date().toISOString(),
                 qualidade_sinal: 100
               };
+              
+              console.log('✅ Leitura processada:', dispositivoSeguro.leitura_atual);
             }
             
             return dispositivoSeguro;
@@ -131,7 +147,7 @@ export const Home: React.FC = () => {
               descricao: '',
               coordenadas: { latitude: 0, longitude: 0 },
               status: 'offline' as const,
-              nivel_bateria: 0,
+              nivel_bateria: 94, // Valor fixo ilustrativo
               versao_firmware: '1.0',
               leitura_atual: undefined,
               estatisticas: {
@@ -220,7 +236,7 @@ export const Home: React.FC = () => {
       console.error('❌ Erro ao obter dados de análise:', error);
       return [
         { label: "PH", value: "--", change: "Erro", trend: "up" as const, status: "normal" as const },
-        { label: "Turbidez", value: "-- NTU", change: "Erro", trend: "up" as const, status: "normal" as const },
+        { label: "Turbidez", value: "--", change: "Erro", trend: "up" as const, status: "normal" as const },
         { label: "Condutividade", value: "--", change: "Erro", trend: "up" as const, status: "normal" as const },
         { label: "Temperatura", value: "--°C", change: "Erro", trend: "up" as const, status: "normal" as const },
       ];
@@ -233,6 +249,7 @@ export const Home: React.FC = () => {
         case 'danger': return 'Crítico!';
         case 'warning': return 'Atenção';
         case 'normal': return 'Normal';
+        case 'unknown': return 'Sem leitura';
         default: return 'Sem dados';
       }
     } catch (error) {
@@ -271,9 +288,12 @@ export const Home: React.FC = () => {
         return 'Atualizado agora';
       } else if (diferencaMin < 60) {
         return `Atualizado há ${diferencaMin} minutos`;
-      } else {
+      } else if (diferencaMin < 1440) { // menos de 24h
         const horas = Math.floor(diferencaMin / 60);
         return `Atualizado há ${horas} horas`;
+      } else {
+        const dias = Math.floor(diferencaMin / 1440);
+        return `Atualizado há ${dias} dias`;
       }
     } catch (error) {
       console.error('❌ Erro ao obter texto de última atualização:', error);
@@ -389,6 +409,8 @@ export const Home: React.FC = () => {
               onRefresh={onRefresh}
               colors={[colors.water.primary]}
               tintColor={colors.water.primary}
+              title="Atualizando dados..."
+              titleColor={colors.mutedForeground}
             />
           }
         >

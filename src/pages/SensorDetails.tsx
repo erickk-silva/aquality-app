@@ -8,6 +8,8 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  RefreshControl,
+  Animated,
 } from 'react-native';
 import { ArrowLeft, Activity, Clock, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -105,9 +107,11 @@ export const SensorDetails: React.FC = () => {
   
   // Estados para dados reais
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [deviceData, setDeviceData] = useState<any>(null);
   const [leituras, setLeituras] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const pullProgress = useState(new Animated.Value(0))[0];
   
   // Pega o dispositivo dos parâmetros de navegação
   const device = (route.params as any)?.device;
@@ -146,6 +150,12 @@ export const SensorDetails: React.FC = () => {
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await carregarDadosDispositivo();
+    setRefreshing(false);
+  };
+
   // Dados para exibição (dados reais ou fallback)
   const displayData = deviceData || {
     nome: device?.nome || 'Dispositivo',
@@ -161,10 +171,10 @@ export const SensorDetails: React.FC = () => {
     conductivity: currentReading.condutividade,
     temperature: currentReading.temperatura
   } : {
-    ph: 0,
-    turbidity: 0,
-    conductivity: 0,
-    temperature: 0
+    ph: null,
+    turbidity: null,
+    conductivity: null,
+    temperature: null
   };
   
   if (loading) {
@@ -201,19 +211,21 @@ export const SensorDetails: React.FC = () => {
     return current > previous ? colors.success : colors.danger;
   };
 
-  const formatValue = (value: number, unit: string) => {
-    return `${value}${unit}`;
+  const formatValue = (value: number | null, unit: string) => {
+    return value !== null ? `${value}${unit}` : 'NULL';
   };
 
-  const getParameterStatus = (value: number, parameter: string) => {
+  const getParameterStatus = (value: number | null, parameter: string) => {
+    if (value === null) return { status: 'unknown', text: 'NULL' };
+    
     switch (parameter) {
       case 'ph':
         if (value < 6.5 || value > 8.5) return { status: 'danger', text: 'Crítico' };
         if (value < 7.0 || value > 8.0) return { status: 'warning', text: 'Atenção' };
         return { status: 'normal', text: 'Normal' };
       case 'turbidity':
-        if (value > 10) return { status: 'danger', text: 'Crítico' };
-        if (value > 5) return { status: 'warning', text: 'Atenção' };
+        if (value > 50) return { status: 'danger', text: 'Crítico' };
+        if (value > 25) return { status: 'warning', text: 'Atenção' };
         return { status: 'normal', text: 'Normal' };
       case 'conductivity':
         if (value > 2.5) return { status: 'danger', text: 'Crítico' };
@@ -236,6 +248,16 @@ export const SensorDetails: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={[colors.water.primary]}
+            tintColor={colors.water.primary}
+            title="Atualizando dados do sensor..."
+            titleColor={colors.mutedForeground}
+          />
+        }
       >
         <View style={styles.content}>
           {/* Header com botão voltar */}
@@ -304,7 +326,7 @@ export const SensorDetails: React.FC = () => {
               </View>
               <View style={styles.dataCard}>
                 <Text style={styles.dataLabel}>Turbidez</Text>
-                <Text style={styles.dataValue}>{formatValue(currentData.turbidity, ' NTU')}</Text>
+                <Text style={styles.dataValue}>{formatValue(currentData.turbidity, '%')}</Text>
                 <Text style={[
                   styles.dataStatus,
                   { color: getParameterStatus(currentData.turbidity, 'turbidity').status === 'danger' ? colors.danger : 
@@ -366,19 +388,19 @@ export const SensorDetails: React.FC = () => {
                   <View style={styles.historyData}>
                     <View style={styles.historyDataItem}>
                       <Text style={styles.historyLabel}>PH</Text>
-                      <Text style={styles.historyValue}>{record.ph}</Text>
+                      <Text style={styles.historyValue}>{record.ph !== null ? record.ph : 'NULL'}</Text>
                     </View>
                     <View style={styles.historyDataItem}>
                       <Text style={styles.historyLabel}>Turbidez</Text>
-                      <Text style={styles.historyValue}>{record.turbidez} NTU</Text>
+                      <Text style={styles.historyValue}>{record.turbidez !== null ? `${record.turbidez}%` : 'NULL'}</Text>
                     </View>
                     <View style={styles.historyDataItem}>
                       <Text style={styles.historyLabel}>Condutividade</Text>
-                      <Text style={styles.historyValue}>{record.condutividade}</Text>
+                      <Text style={styles.historyValue}>{record.condutividade !== null ? record.condutividade : 'NULL'}</Text>
                     </View>
                     <View style={styles.historyDataItem}>
                       <Text style={styles.historyLabel}>Temperatura</Text>
-                      <Text style={styles.historyValue}>{record.temperatura}°C</Text>
+                      <Text style={styles.historyValue}>{record.temperatura !== null ? `${record.temperatura}°C` : 'NULL'}</Text>
                     </View>
                   </View>
                 </View>

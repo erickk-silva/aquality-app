@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,103 +6,152 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  RefreshControl,
+  Alert,
 } from 'react-native';
-import { Bell, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react-native';
+import { Bell, AlertTriangle, CheckCircle, XCircle, Clock, Settings, Plus } from 'lucide-react-native';
 import { MobileHeader } from '../components/MobileHeader';
 import { colors, typography, spacing, borderRadius, shadows } from '../utils/colors';
 import { useThemeMode } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { alertService, AlertasResponse } from '../services/alertService';
+import { useNotifications } from '../services/notificationService';
 
 const { width } = Dimensions.get('window');
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'warning' | 'success' | 'error' | 'info';
-  time: string;
-  read: boolean;
+interface Alerta {
+  id: number;
+  tipo: string;
+  nivel: 'info' | 'warning' | 'critical';
+  titulo: string;
+  mensagem: string;
+  valores: {
+    atual?: number;
+    limite?: number;
+  };
+  dispositivo: {
+    nome: string;
+    localizacao: string;
+  };
+  status: {
+    lido: boolean;
+    resolvido: boolean;
+  };
+  datas: {
+    criacao: string;
+    resolucao?: string;
+    tempo_decorrido: string;
+  };
 }
-
-const notifications: Notification[] = [
-  {
-    id: '1',
-    title: 'Alerta de Qualidade',
-    message: 'Nível de condutividade acima do normal detectado no sensor Aquality01',
-    type: 'warning',
-    time: '2 min atrás',
-    read: false,
-  },
-  {
-    id: '2',
-    title: 'Sensor Conectado',
-    message: 'Dispositivo Casa02 foi reconectado com sucesso',
-    type: 'success',
-    time: '15 min atrás',
-    read: false,
-  },
-  {
-    id: '3',
-    title: 'Bateria Baixa',
-    message: 'Bateria do sensor Localização 03 está em 12%',
-    type: 'error',
-    time: '1 hora atrás',
-    read: true,
-  },
-  {
-    id: '4',
-    title: 'Análise Completa',
-    message: 'Nova análise de qualidade da água disponível',
-    type: 'info',
-    time: '2 horas atrás',
-    read: true,
-  },
-  {
-    id: '5',
-    title: 'Manutenção Programada',
-    message: 'Lembrete: Manutenção do sensor Aquality01 agendada para amanhã',
-    type: 'info',
-    time: '1 dia atrás',
-    read: true,
-  },
-];
 
 export const Notifications: React.FC = () => {
   const { mode } = useThemeMode();
   const { user } = useAuth();
-  const getNotificationIcon = (type: string) => {
+  const { isInitialized, badgeCount, clearBadge } = useNotifications();
+  
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [contadores, setContadores] = useState({
+    total: 0,
+    nao_lidos: 0,
+    nao_resolvidos: 0
+  });
+
+  // Carregar alertas
+  const carregarAlertas = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      const response = await alertService.listarAlertas({
+        usuario_id: user.id,
+        limit: 50
+      });
+      
+      if (response.status === 'sucesso' && response.dados) {
+        setAlertas(response.dados.alertas);
+        setContadores(response.dados.contadores);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar alertas:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os alertas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await carregarAlertas();
+    setRefreshing(false);
+  };
+
+  // Marcar como lido
+  const marcarComoLido = async (alertaId: number) => {
+    try {
+      await alertService.marcarComoLido(alertaId);
+      await carregarAlertas();
+    } catch (error) {
+      console.error('Erro ao marcar como lido:', error);
+    }
+  };
+
+  // Marcar todos como lidos
+  const marcarTodosComoLidos = async () => {
+    if (!user?.id) return;
+    
+    try {
+      await alertService.marcarTodosComoLidos(user.id);
+      await carregarAlertas();
+      await clearBadge();
+    } catch (error) {
+      console.error('Erro ao marcar todos como lidos:', error);
+    }
+  };
+
+  // Simular novo alerta (para testes)
+  const simularAlerta = async () => {
+    if (!user?.id) return;
+    
+    try {
+      await alertService.simularNovoAlerta(user.id);
+      await carregarAlertas();
+    } catch (error) {
+      console.error('Erro ao simular alerta:', error);
+    }
+  };
+
+  useEffect(() => {
+    carregarAlertas();
+  }, [user?.id]);
+
+  const getNotificationIcon = (nivel: string) => {
     const iconProps = { size: 20 };
     
-    switch (type) {
+    switch (nivel) {
+      case 'critical':
+        return <XCircle {...iconProps} color={colors.danger} />;
       case 'warning':
         return <AlertTriangle {...iconProps} color={colors.warning} />;
-      case 'success':
-        return <CheckCircle {...iconProps} color={colors.success} />;
-      case 'error':
-        return <XCircle {...iconProps} color={colors.danger} />;
       case 'info':
-        return <Bell {...iconProps} color={colors.water.primary} />;
       default:
-        return <Bell {...iconProps} color={colors.mutedForeground} />;
+        return <Bell {...iconProps} color={colors.water.primary} />;
     }
   };
 
-  const getNotificationStyle = (type: string) => {
-    switch (type) {
+  const getNotificationStyle = (nivel: string) => {
+    switch (nivel) {
+      case 'critical':
+        return { backgroundColor: `${colors.danger}10`, borderLeftColor: colors.danger };
       case 'warning':
         return { backgroundColor: `${colors.warning}10`, borderLeftColor: colors.warning };
-      case 'success':
-        return { backgroundColor: `${colors.success}10`, borderLeftColor: colors.success };
-      case 'error':
-        return { backgroundColor: `${colors.danger}10`, borderLeftColor: colors.danger };
       case 'info':
-        return { backgroundColor: `${colors.water.primary}10`, borderLeftColor: colors.water.primary };
       default:
-        return { backgroundColor: colors.muted, borderLeftColor: colors.mutedForeground };
+        return { backgroundColor: `${colors.water.primary}10`, borderLeftColor: colors.water.primary };
     }
   };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   const styles = React.useMemo(() => StyleSheet.create({
     container: {
@@ -211,6 +260,83 @@ export const Notifications: React.FC = () => {
       borderRadius: 4,
       backgroundColor: colors.water.primary,
     },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    actionButton: {
+      backgroundColor: colors.water.primary + '20',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    actionButtonText: {
+      fontSize: typography.sizes.sm,
+      color: colors.water.primary,
+      fontWeight: typography.weights.medium,
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      ...shadows.card,
+    },
+    statItem: {
+      alignItems: 'center',
+    },
+    statNumber: {
+      fontSize: typography.sizes.xl,
+      fontWeight: typography.weights.bold,
+      color: colors.foreground,
+    },
+    statLabel: {
+      fontSize: typography.sizes.sm,
+      color: colors.mutedForeground,
+      marginTop: spacing.xs,
+    },
+    loadingContainer: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+    },
+    loadingText: {
+      fontSize: typography.sizes.md,
+      color: colors.mutedForeground,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      paddingVertical: spacing.xl,
+    },
+    emptyTitle: {
+      fontSize: typography.sizes.lg,
+      fontWeight: typography.weights.semibold,
+      color: colors.foreground,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    emptyMessage: {
+      fontSize: typography.sizes.md,
+      color: colors.mutedForeground,
+      textAlign: 'center',
+      lineHeight: 24,
+    },
+    valoresText: {
+      fontSize: typography.sizes.sm,
+      color: colors.mutedForeground,
+      marginTop: spacing.xs,
+      fontStyle: 'italic',
+    },
+    dispositivoText: {
+      fontSize: typography.sizes.xs,
+      color: colors.mutedForeground,
+      marginLeft: spacing.xs,
+    },
   }), [mode]);
 
   return (
@@ -221,62 +347,109 @@ export const Notifications: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.water.primary]}
+            tintColor={colors.water.primary}
+          />
+        }
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>Notificações</Text>
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount}</Text>
-              </View>
-            )}
+            <Text style={styles.title}>Alertas</Text>
+            <View style={styles.headerActions}>
+              {contadores.nao_lidos > 0 && (
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={marcarTodosComoLidos}
+                >
+                  <Text style={styles.actionButtonText}>Marcar todos como lidos</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={simularAlerta}
+              >
+                <Plus size={16} color={colors.water.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
           
-          <Text style={styles.subtitle}>
-            {unreadCount > 0 
-              ? `${unreadCount} notificação${unreadCount > 1 ? 'ões' : ''} não lida${unreadCount > 1 ? 's' : ''}`
-              : 'Todas as notificações foram lidas'
-            }
-          </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{contadores.total}</Text>
+              <Text style={styles.statLabel}>Total</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.warning }]}>{contadores.nao_lidos}</Text>
+              <Text style={styles.statLabel}>Não lidos</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.danger }]}>{contadores.nao_resolvidos}</Text>
+              <Text style={styles.statLabel}>Não resolvidos</Text>
+            </View>
+          </View>
 
-          <View style={styles.notificationsList}>
-            {notifications.map((notification) => (
-              <TouchableOpacity
-                key={notification.id}
-                style={[
-                  styles.notificationCard,
-                  getNotificationStyle(notification.type),
-                  !notification.read && styles.unreadCard,
-                ]}
-                activeOpacity={0.7}
-              >
-                <View style={styles.notificationHeader}>
-                  <View style={styles.notificationIcon}>
-                    {getNotificationIcon(notification.type)}
-                  </View>
-                  <View style={styles.notificationContent}>
-                    <Text style={[
-                      styles.notificationTitle,
-                      !notification.read && styles.unreadTitle
-                    ]}>
-                      {notification.title}
-                    </Text>
-                    <Text style={styles.notificationMessage}>
-                      {notification.message}
-                    </Text>
-                    <View style={styles.notificationTime}>
-                      <Clock size={12} color={colors.mutedForeground} />
-                      <Text style={styles.timeText}>{notification.time}</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Carregando alertas...</Text>
+            </View>
+          ) : alertas.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Bell size={48} color={colors.mutedForeground} />
+              <Text style={styles.emptyTitle}>Nenhum alerta</Text>
+              <Text style={styles.emptyMessage}>
+                Você não possui alertas no momento. Configure regras de alerta para receber notificações.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.notificationsList}>
+              {alertas.map((alerta) => (
+                <TouchableOpacity
+                  key={alerta.id}
+                  style={[
+                    styles.notificationCard,
+                    getNotificationStyle(alerta.nivel),
+                    !alerta.status.lido && styles.unreadCard,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => marcarComoLido(alerta.id)}
+                >
+                  <View style={styles.notificationHeader}>
+                    <View style={styles.notificationIcon}>
+                      {getNotificationIcon(alerta.nivel)}
+                    </View>
+                    <View style={styles.notificationContent}>
+                      <Text style={[
+                        styles.notificationTitle,
+                        !alerta.status.lido && styles.unreadTitle
+                      ]}>
+                        {alerta.titulo}
+                      </Text>
+                      <Text style={styles.notificationMessage}>
+                        {alerta.mensagem}
+                      </Text>
+                      {alerta.valores.atual && (
+                        <Text style={styles.valoresText}>
+                          Valor atual: {alerta.valores.atual} | Limite: {alerta.valores.limite}
+                        </Text>
+                      )}
+                      <View style={styles.notificationTime}>
+                        <Clock size={12} color={colors.mutedForeground} />
+                        <Text style={styles.timeText}>{alerta.datas.tempo_decorrido}</Text>
+                        <Text style={styles.dispositivoText}>• {alerta.dispositivo.nome}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-                {!notification.read && <View style={styles.unreadDot} />}
-              </TouchableOpacity>
-            ))}
-          </View>
+                  {!alerta.status.lido && <View style={styles.unreadDot} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
-
     </View>
   );
 };

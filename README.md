@@ -15,8 +15,7 @@ Aplicativo móvel React Native para monitoramento em tempo real da qualidade da 
 
 ## Estrutura do Projeto
 
-```
-water-sense-mobile/
+```aquality-mobile/
 ├── src/                    # Código fonte do app
 ├── app/                    # APIs do backend
 ├── esp32_aquality/         # Código para ESP32

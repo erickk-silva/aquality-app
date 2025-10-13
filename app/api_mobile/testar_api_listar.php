@@ -1,51 +1,37 @@
 <?php
 /**
- * API para Listar Dispositivos do Usuário - Water Sense Mobile
- * Retorna todos os dispositivos conectados à conta do usuário
+ * Script para testar a API listar.php diretamente
  */
 
-require_once __DIR__ . '/../config.php';
-
-// Configura CORS e headers
-configurar_cors();
-
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    enviar_resposta(405, 'erro', 'Método não permitido. Use GET.');
-}
-
-// Conecta ao banco de dados
-$conexao = conectar_banco();
-if (!$conexao) {
-    enviar_resposta(500, 'erro', 'Falha na conexão com o banco de dados.');
-}
-
-// Parâmetros da URL
-$usuario_id = $_GET['usuario_id'] ?? null;
-
-if (!$usuario_id) {
-    enviar_resposta(400, 'erro', 'ID do usuário é obrigatório.');
-}
+require_once __DIR__ . '/config.php';
 
 try {
-    // Busca dispositivos do usuário
-    $sql_dispositivos = "SELECT id, nome_dispositivo, codigo_verificacao, localizacao, data_criacao 
-                         FROM dispositivos 
-                         WHERE usuario_id = ? 
-                         ORDER BY data_criacao DESC";
-    
-    $stmt_dispositivos = $conexao->prepare($sql_dispositivos);
-    if (!$stmt_dispositivos) {
-        throw new Exception('Erro ao preparar consulta de dispositivos: ' . $conexao->error);
+    $conexao = conectar_banco();
+    if (!$conexao) {
+        throw new Exception('Falha na conexão');
     }
     
-    $stmt_dispositivos->bind_param("i", $usuario_id);
-    $stmt_dispositivos->execute();
-    $resultado_dispositivos = $stmt_dispositivos->get_result();
+    $usuario_id = 1;
+    
+    echo "=== TESTE API LISTAR ===\n\n";
+    
+    // Simula a lógica da API listar.php
+    $sql = "SELECT 
+                d.id,
+                d.nome_dispositivo,
+                d.codigo_verificacao,
+                d.localizacao,
+                d.data_criacao
+            FROM dispositivos d
+            WHERE d.usuario_id = ?";
+    
+    $stmt = $conexao->prepare($sql);
+    $stmt->bind_param("i", $usuario_id);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
     
     $dispositivos = [];
-    
-    while ($dispositivo = $resultado_dispositivos->fetch_assoc()) {
-        // Para cada dispositivo, conta as leituras
+    while ($dispositivo = $resultado->fetch_assoc()) {
         $total_leituras = 0;
         $ultima_leitura = null;
         
@@ -90,6 +76,14 @@ try {
             $diferenca_segundos = $agora->getTimestamp() - $ultima_leitura_time->getTimestamp();
             $diferenca_minutos = floor($diferenca_segundos / 60);
             
+            echo "Dispositivo: {$dispositivo['nome_dispositivo']}\n";
+            echo "Última leitura: {$ultima_leitura['data_hora']}\n";
+            echo "Diferença: {$diferenca_minutos} minutos\n";
+            echo "PH: {$ultima_leitura['ph']}\n";
+            echo "Turbidez: {$ultima_leitura['turbidez']}\n";
+            echo "Condutividade: {$ultima_leitura['condutividade']}\n";
+            echo "Temperatura: {$ultima_leitura['temperatura']}\n";
+            
             if ($diferenca_minutos <= 10) {
                 $status = 'online';
                 $tempo_offline = 'Online';
@@ -105,44 +99,16 @@ try {
                     $tempo_offline = $dias . ' dias atrás';
                 }
             }
+            
+            echo "Status calculado: {$status}\n";
+            echo "Tempo offline: {$tempo_offline}\n";
         }
         
-        $dispositivos[] = [
-            'id' => intval($dispositivo['id']),
-            'nome' => $dispositivo['nome_dispositivo'],
-            'codigo_verificacao' => $dispositivo['codigo_verificacao'],
-            'localizacao' => $dispositivo['localizacao'],
-            'data_criacao' => $dispositivo['data_criacao'],
-            'status' => $status,
-            'total_leituras' => intval($total_leituras),
-            'ultima_leitura' => $ultima_leitura,
-            'tempo_offline' => $tempo_offline
-        ];
+        echo "---\n";
     }
     
-    $dados_resposta = [
-        'dispositivos' => $dispositivos,
-        'total_dispositivos' => count($dispositivos),
-        'resumo' => [
-            'total_dispositivos' => count($dispositivos),
-            'total_leituras' => array_sum(array_column($dispositivos, 'total_leituras'))
-        ]
-    ];
-    
-    log_error('Dispositivos do usuário listados com sucesso', [
-        'usuario_id' => $usuario_id,
-        'total_dispositivos' => count($dispositivos)
-    ]);
-    
-    enviar_resposta(200, 'sucesso', 'Dispositivos obtidos com sucesso', $dados_resposta);
-    
 } catch (Exception $e) {
-    log_error('Erro ao listar dispositivos do usuário', [
-        'erro' => $e->getMessage(),
-        'usuario_id' => $usuario_id
-    ]);
-    
-    enviar_resposta(500, 'erro', 'Erro interno do servidor: ' . $e->getMessage());
+    echo "❌ Erro: " . $e->getMessage() . "\n";
 }
 
 $conexao->close();

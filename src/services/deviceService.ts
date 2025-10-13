@@ -81,7 +81,7 @@ class DeviceService {
           codigo_verificacao: disp.codigo_verificacao,
           localizacao: disp.localizacao,
           status: disp.total_leituras > 0 ? 'online' : 'offline',
-          nivel_bateria: Math.floor(Math.random() * 100), // Simulado por enquanto
+          nivel_bateria: 94, // Valor fixo ilustrativo
           data_criacao: disp.data_criacao,
           total_leituras: disp.total_leituras,
           ultima_leitura: disp.ultima_leitura,
@@ -188,50 +188,58 @@ class DeviceService {
       const data = await response.json();
       
       console.log('📱 Resposta dos dispositivos:', data);
+      console.log('📱 Estrutura dos dados:', {
+        status: data.status,
+        dados: data.dados,
+        dispositivos: data.dados?.dispositivos
+      });
       
       if (data.status === 'sucesso' && data.dados) {
         // Mapeia os dados para o formato esperado pelo dashboard
         const dispositivos = await Promise.all(
-          data.dados.dispositivos.map(async (disp: any) => {
+          (data.dados.dispositivos || []).map(async (disp: any) => {
             let leitura_atual = null;
             
             // Se o dispositivo tem leituras, busca a mais recente
             if (disp.total_leituras > 0 && disp.ultima_leitura) {
               const ultimaLeitura = disp.ultima_leitura;
+              console.log('📊 Última leitura encontrada:', ultimaLeitura);
               
               // Mapeia para o formato esperado pela UI
               leitura_atual = {
                 ph: {
-                  valor: ultimaLeitura.ph || 0,
+                  valor: ultimaLeitura.ph !== null && ultimaLeitura.ph !== undefined ? Number(ultimaLeitura.ph) : null,
                   status: this.getParameterStatus(ultimaLeitura.ph, 'ph'),
                   unidade: ''
                 },
                 turbidez: {
-                  valor: ultimaLeitura.turbidez || 0,
+                  valor: ultimaLeitura.turbidez !== null && ultimaLeitura.turbidez !== undefined ? Number(ultimaLeitura.turbidez) : null,
                   status: this.getParameterStatus(ultimaLeitura.turbidez, 'turbidez'),
-                  unidade: 'NTU'
+                  unidade: '%'
                 },
                 condutividade: {
-                  valor: ultimaLeitura.condutividade || 0,
+                  valor: ultimaLeitura.condutividade !== null && ultimaLeitura.condutividade !== undefined ? Number(ultimaLeitura.condutividade) : null,
                   status: this.getParameterStatus(ultimaLeitura.condutividade, 'condutividade'),
                   unidade: ''
                 },
                 temperatura: {
-                  valor: ultimaLeitura.temperatura || 0,
+                  valor: ultimaLeitura.temperatura !== null && ultimaLeitura.temperatura !== undefined ? Number(ultimaLeitura.temperatura) : null,
                   status: this.getParameterStatus(ultimaLeitura.temperatura, 'temperatura'),
                   unidade: '°C'
                 },
                 timestamp: ultimaLeitura.data_hora
               };
+              
+              console.log('✅ Leitura mapeada:', leitura_atual);
             }
             
-            return {
+            const dispositivoMapeado = {
               id: disp.id,
               nome: disp.nome,
               codigo_dispositivo: disp.codigo_verificacao,
               localizacao: disp.localizacao,
-              status: disp.total_leituras > 0 ? 'online' : 'offline',
-              nivel_bateria: Math.floor(Math.random() * 100), // Simulado
+              status: disp.status || 'offline',
+              nivel_bateria: 94, // Valor fixo ilustrativo
               leitura_atual,
               estatisticas: {
                 total_leituras: disp.total_leituras,
@@ -242,15 +250,20 @@ class DeviceService {
                 atualizacao: disp.data_criacao
               }
             };
+            
+            console.log('📱 Dispositivo mapeado:', dispositivoMapeado);
+            return dispositivoMapeado;
           })
         );
         
+        console.log('📱 Dispositivos finais:', dispositivos);
         return {
           status: 'sucesso',
           dados: dispositivos
         };
       }
       
+      console.log('❌ Erro na resposta da API:', data);
       return {
         status: 'erro',
         mensagem: data.mensagem || 'Erro ao buscar dispositivos'
@@ -259,7 +272,7 @@ class DeviceService {
       console.error('❌ Erro ao buscar dispositivos com leituras:', error);
       return {
         status: 'erro',
-        mensagem: 'Erro de conexão'
+        mensagem: 'Erro de conexão: ' + error.message
       };
     }
   }
@@ -267,8 +280,8 @@ class DeviceService {
   /**
    * Determina o status de um parâmetro baseado no valor
    */
-  private getParameterStatus(value: number, parameter: string): 'normal' | 'warning' | 'danger' {
-    if (!value) return 'normal';
+  private getParameterStatus(value: any, parameter: string): 'normal' | 'warning' | 'danger' | 'unknown' {
+    if (value === null || value === undefined || value === '') return 'unknown';
     
     switch (parameter) {
       case 'ph':

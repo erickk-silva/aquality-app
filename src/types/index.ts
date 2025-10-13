@@ -108,6 +108,5 @@ export type MainTabParamList = {
   Devices: undefined;
   Settings: undefined;
   MySensor: undefined;
-  Records: undefined;
-  Maps: undefined;
+  Progress: undefined;
 };
