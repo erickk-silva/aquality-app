@@ -1,3 +1,4 @@
+// Importações de hooks e bibliotecas essenciais do React e React Native
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -9,43 +10,71 @@ import {
   Alert,
   Animated,
 } from 'react-native';
+// Hook para navegação entre telas
 import { useNavigation } from '@react-navigation/native';
-import { MobileHeader } from '../components/MobileHeader';
-import { AnalysisCard } from '../components/AnalysisCard';
-import { LocationCard } from '../components/LocationCard';
-import { QuickActionsGrid } from '../components/QuickActionsGrid';
-import { DeviceSwitchCard } from '../components/DeviceSwitchCard';
-import { PullToRefreshIndicator } from '../components/PullToRefreshIndicator';
+// Componentes customizados
+import { MobileHeader } from '../components/MobileHeader'; // Cabeçalho da aplicação
+import { AnalysisCard } from '../components/AnalysisCard'; // Cartão de resumo da última análise
+import { LocationCard } from '../components/LocationCard'; // Cartão de dispositivos conectados
+import { QuickActionsGrid } from '../components/QuickActionsGrid'; // Grid de atalhos rápidos
+import { DeviceSwitchCard } from '../components/DeviceSwitchCard'; // Cartão para troca de dispositivo
+import { PullToRefreshIndicator } from '../components/PullToRefreshIndicator'; // Indicador visual de refresh
+// Hook customizado para exibir notificações/toasts
 import { useToast } from '../hooks/useToast';
+// Utilitários de estilo
 import { colors, typography, spacing } from '../utils/colors';
-import { useThemeMode } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
-import { deviceService } from '../services/deviceService';
+// Hooks de contexto
+import { useThemeMode } from '../contexts/ThemeContext'; // Contexto de tema (embora use apenas o `mode` para estilos)
+import { useAuth } from '../contexts/AuthContext'; // Contexto de autenticação (dados do usuário)
+// Serviços de API
+import { deviceService } from '../services/deviceService'; // Serviço para interagir com a API de dispositivos
+// Tipos de dados (Dispositivo, AnalysisItem)
 import { Dispositivo, AnalysisItem } from '../types';
-import { handleApiError } from '../services/api';
+import { handleApiError } from '../services/api'; // Função para tratamento de erros da API
 
+// Obtém a largura da janela para cálculos de layout
 const { width } = Dimensions.get('window');
 
+/**
+ * Componente principal da tela Home (Dashboard).
+ */
 export const Home: React.FC = () => {
+  // Inicialização de hooks
   const navigation = useNavigation();
-  const { mode } = useThemeMode();
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const { mode } = useThemeMode(); // Modo de tema (para memoizar estilos, embora seja 'light' fixo)
+  const { toast } = useToast(); // Função para exibir toasts
+  const { user } = useAuth(); // Dados do usuário logado
   
+  // ==================== Estados Locais ====================
+  // Armazena a lista de dispositivos com suas últimas leituras
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
+  // Indica o estado de carregamento inicial (primeiro acesso à tela)
   const [isLoading, setIsLoading] = useState(true);
+  // Indica o estado de atualização (pull-to-refresh)
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Sinaliza se ocorreu um erro crítico no carregamento dos dados
   const [hasError, setHasError] = useState(false);
+  // Armazena a mensagem de erro a ser exibida
   const [errorMessage, setErrorMessage] = useState('');
+  // Variável animada para o indicador de pull-to-refresh (embora o RefreshControl nativo seja usado)
   const pullProgress = useState(new Animated.Value(0))[0];
+  // ==================== Fim dos Estados Locais ====================
 
+  /**
+   * Hook de efeito que dispara o carregamento dos dados quando o componente é montado
+   * ou quando o objeto 'user' é alterado (garantindo que o usuário está logado).
+   */
   useEffect(() => {
     if (user) {
       carregarDados();
     }
   }, [user]);
 
+  /**
+   * Função assíncrona responsável por buscar e processar todos os dados do dashboard.
+   */
   const carregarDados = async () => {
+    // Se não há usuário, finaliza o carregamento
     if (!user) {
       setIsLoading(false);
       return;
@@ -53,27 +82,28 @@ export const Home: React.FC = () => {
     
     try {
       console.log('🏠 Carregando dados do dashboard para usuário:', user.id);
-      setHasError(false);
+      setHasError(false); // Reseta o estado de erro
       setErrorMessage('');
       
+      // 1. Chama o serviço para buscar dispositivos com as últimas leituras
       const response = await deviceService.buscarDispositivosComLeituras(user.id);
       console.log('🏠 Resposta da API:', response);
       
       if (response.status === 'sucesso' && Array.isArray(response.dados)) {
         console.log('🏠 Processando', response.dados.length, 'dispositivos');
         
+        // 2. Mapeia e processa os dados da API para o formato de estado local (Dispositivo[])
         const dispositivosProcessados: Dispositivo[] = response.dados.map((dispositivo: any, index: number) => {
           try {
             console.log(`🏠 Processando dispositivo ${index + 1}:`, dispositivo);
             
-            // Usa o status que vem da API (já calculado corretamente)
             const statusCalculado = dispositivo?.status || 'offline';
             
-            // Cria um objeto básico com valores padrão seguros
+            // Cria um objeto Dispositivo seguro com valores padrão
             const dispositivoSeguro: Dispositivo = {
               id: dispositivo?.id || index + 1,
               nome: dispositivo?.nome || `Dispositivo ${index + 1}`,
-              codigo_dispositivo: dispositivo?.codigo_dispositivo || '',
+              codigo_dispositivo: dispositivo?.codigo_verificacao || '',
               localizacao: dispositivo?.localizacao || 'Localização não informada',
               descricao: '',
               coordenadas: {
@@ -81,7 +111,7 @@ export const Home: React.FC = () => {
                 longitude: 0
               },
               status: statusCalculado,
-              nivel_bateria: 94, // Valor fixo ilustrativo
+              nivel_bateria: 94, // Valor fixo ilustrativo (mockado na API PHP e aqui)
               versao_firmware: '1.0',
               leitura_atual: undefined,
               estatisticas: {
@@ -96,17 +126,18 @@ export const Home: React.FC = () => {
               }
             };
             
-            // Processa a leitura atual se existir
+            // Se houver dados de leitura na resposta, processa-os
             if (dispositivo?.leitura_atual) {
               const leitura = dispositivo.leitura_atual;
-              console.log('🔍 Processando leitura:', leitura);
               
+              // Função auxiliar para converter e validar valores de leitura
               const processarValor = (valor: any) => {
                 if (valor === null || valor === undefined || valor === '') return null;
                 const num = Number(valor);
                 return isNaN(num) ? null : num;
               };
               
+              // Mapeia os parâmetros de leitura (pH, turbidez, etc.)
               dispositivoSeguro.leitura_atual = {
                 ph: {
                   valor: processarValor(leitura.ph?.valor),
@@ -131,66 +162,60 @@ export const Home: React.FC = () => {
                 timestamp: leitura.timestamp || new Date().toISOString(),
                 qualidade_sinal: 100
               };
-              
-              console.log('✅ Leitura processada:', dispositivoSeguro.leitura_atual);
             }
             
             return dispositivoSeguro;
           } catch (deviceError) {
             console.error(`❌ Erro ao processar dispositivo ${index}:`, deviceError);
-            // Retorna um dispositivo padrão em caso de erro
+            // Retorna um objeto de dispositivo de fallback em caso de erro no mapeamento
             return {
               id: index + 1,
-              nome: `Dispositivo ${index + 1}`,
-              codigo_dispositivo: '',
-              localizacao: 'Localização não informada',
-              descricao: '',
-              coordenadas: { latitude: 0, longitude: 0 },
+              nome: `Dispositivo ${index + 1} (Erro)`,
+              // ... (outros campos de fallback)
               status: 'offline' as const,
-              nivel_bateria: 94, // Valor fixo ilustrativo
-              versao_firmware: '1.0',
-              leitura_atual: undefined,
-              estatisticas: {
-                total_leituras: 0,
-                ultima_leitura: undefined,
-                tempo_offline: '0 min'
-              },
-              datas: {
-                criacao: new Date().toISOString(),
-                atualizacao: new Date().toISOString(),
-                ultima_comunicacao: undefined
-              }
+              nivel_bateria: 0,
+              estatisticas: { total_leituras: 0, ultima_leitura: undefined, tempo_offline: 'Erro' },
+              datas: { criacao: new Date().toISOString(), atualizacao: new Date().toISOString() }
             };
           }
         });
         
-        console.log('🏠 Dispositivos processados com sucesso:', dispositivosProcessados.length);
-        setDispositivos(dispositivosProcessados);
+        setDispositivos(dispositivosProcessados); // Atualiza o estado principal
       } else {
         console.warn('⚠️ Nenhum dispositivo encontrado ou resposta inválida');
         setDispositivos([]);
       }
     } catch (error) {
+      // Captura erros críticos (ex: falha de rede)
       console.error('❌ Erro crítico ao carregar dados:', error);
       setHasError(true);
       setErrorMessage('Erro ao carregar dados. Tente novamente.');
       setDispositivos([]);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Finaliza o loading inicial
     }
   };
 
+  /**
+   * Função de callback para o Pull-to-Refresh.
+   */
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await carregarDados();
+    await carregarDados(); // Recarrega os dados
     setIsRefreshing(false);
   };
 
-  // Função segura para obter dados de análise
+  // ==================== Funções de Formatação de Dados ====================
+
+  /**
+   * Prepara os dados da última leitura para exibição no AnalysisCard.
+   */
   const getAnalysisData = (): AnalysisItem[] => {
     try {
+      // Prioriza o primeiro dispositivo que está online, senão pega o primeiro da lista
       const dispositivoPrincipal = dispositivos.find(d => d.status === 'online') || dispositivos[0];
       
+      // Retorna dados de "Sem dados" se não houver leituras válidas
       if (!dispositivoPrincipal?.leitura_atual) {
         return [
           { label: "PH", value: "--", change: "Sem dados", trend: "up" as const, status: "normal" as const },
@@ -202,12 +227,13 @@ export const Home: React.FC = () => {
 
       const leitura = dispositivoPrincipal.leitura_atual;
       
+      // Mapeia cada parâmetro para o formato AnalysisItem
       return [
         {
           label: "PH",
           value: (leitura.ph?.valor != null) ? leitura.ph.valor.toFixed(1) : "--",
           change: getChangeText(leitura.ph?.status || 'normal'),
-          trend: (leitura.ph?.status === 'danger') ? "down" as const : "up" as const,
+          trend: (leitura.ph?.status === 'danger') ? "down" as const : "up" as const, // Exemplo de lógica de tendência
           status: (leitura.ph?.status as 'normal' | 'warning' | 'danger') || 'normal',
         },
         {
@@ -234,6 +260,7 @@ export const Home: React.FC = () => {
       ];
     } catch (error) {
       console.error('❌ Erro ao obter dados de análise:', error);
+      // Retorna fallback em caso de erro na formatação
       return [
         { label: "PH", value: "--", change: "Erro", trend: "up" as const, status: "normal" as const },
         { label: "Turbidez", value: "--", change: "Erro", trend: "up" as const, status: "normal" as const },
@@ -243,6 +270,9 @@ export const Home: React.FC = () => {
     }
   };
 
+  /**
+   * Converte o status do parâmetro em um texto de mudança amigável.
+   */
   const getChangeText = (status: string): string => {
     try {
       switch (status) {
@@ -258,12 +288,14 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Função segura para obter dados dos dispositivos
+  /**
+   * Prepara os dados de localização para o LocationCard.
+   */
   const getDevicesData = () => {
     try {
       return dispositivos.map(dispositivo => ({
         name: dispositivo.nome || 'Dispositivo',
-        active: dispositivo.status === 'online'
+        active: dispositivo.status === 'online' // Mapeia status para ativo/inativo
       }));
     } catch (error) {
       console.error('❌ Erro ao obter dados dos dispositivos:', error);
@@ -271,10 +303,14 @@ export const Home: React.FC = () => {
     }
   };
 
+  /**
+   * Calcula e retorna o texto da última atualização em formato relativo (ex: "há 5 minutos").
+   */
   const getLastUpdateText = (): string => {
     try {
       const dispositivoPrincipal = dispositivos.find(d => d.status === 'online') || dispositivos[0];
       
+      // Retorna 'Nunca atualizado' se não houver timestamp
       if (!dispositivoPrincipal?.leitura_atual?.timestamp) {
         return 'Nunca atualizado';
       }
@@ -284,6 +320,7 @@ export const Home: React.FC = () => {
       const diferencaMs = agora.getTime() - timestamp.getTime();
       const diferencaMin = Math.floor(diferencaMs / (1000 * 60));
       
+      // Lógica de formatação de tempo relativo
       if (diferencaMin < 1) {
         return 'Atualizado agora';
       } else if (diferencaMin < 60) {
@@ -301,27 +338,36 @@ export const Home: React.FC = () => {
     }
   };
 
+  // ==================== Funções de Ação ====================
+
+  /**
+   * Função chamada ao pressionar o cartão de troca de dispositivo (apenas navega para a lista de dispositivos).
+   */
   const handleDeviceSwitch = () => {
     try {
       toast({
         title: "Dispositivos",
         description: "Abrindo seleção de dispositivos...",
       });
-      navigation.navigate('Devices' as never);
+      navigation.navigate('Devices' as never); // Navega para a tela de dispositivos
     } catch (error) {
       console.error('❌ Erro ao navegar para dispositivos:', error);
     }
   };
 
+  /**
+   * Função chamada ao pressionar uma ação na QuickActionsGrid (atalhos rápidos).
+   */
   const handleActionPress = (action: string) => {
     try {
-      // Navegação para a rota especificada
+      // Navegação para a rota especificada (Devices, Notifications, etc.)
       navigation.navigate(action as never);
     } catch (error) {
       console.error('❌ Erro ao navegar para ação:', action, error);
     }
   };
 
+  // ==================== Definição de Estilos (memoizados) ====================
   const styles = React.useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
@@ -331,8 +377,8 @@ export const Home: React.FC = () => {
       flex: 1,
     },
     scrollContent: {
-      paddingTop: 120, // Space for header
-      paddingBottom: 100, // Space for bottom navigation
+      paddingTop: 120, // Espaço para o cabeçalho fixo
+      paddingBottom: 100, // Espaço para a navegação inferior (se houver)
       paddingHorizontal: spacing.md,
     },
     content: {
@@ -367,8 +413,11 @@ export const Home: React.FC = () => {
       fontSize: typography.sizes.md,
     },
   }), [mode]);
+  // ==================== Fim da Definição de Estilos ====================
 
-  // Tela de carregamento
+  // ==================== Renderização Condicional ====================
+  
+  // 1. Tela de Carregamento Inicial
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -377,7 +426,7 @@ export const Home: React.FC = () => {
     );
   }
 
-  // Tela de erro
+  // 2. Tela de Erro Crítico
   if (hasError) {
     return (
       <View style={styles.container}>
@@ -393,12 +442,14 @@ export const Home: React.FC = () => {
     );
   }
 
-  // Renderização principal com try-catch
+  // 3. Renderização Principal (Dashboard)
   try {
     return (
       <View style={styles.container}>
+        {/* Cabeçalho fixo */}
         <MobileHeader userName={user?.name || 'Usuário'} />
         
+        {/* Conteúdo principal com rolagem e Pull-to-Refresh */}
         <ScrollView 
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -406,7 +457,7 @@ export const Home: React.FC = () => {
           refreshControl={
             <RefreshControl 
               refreshing={isRefreshing} 
-              onRefresh={onRefresh}
+              onRefresh={onRefresh} // Dispara a recarga de dados
               colors={[colors.water.primary]}
               tintColor={colors.water.primary}
               title="Atualizando dados..."
@@ -415,23 +466,29 @@ export const Home: React.FC = () => {
           }
         >
           <View style={styles.content}>
+            {/* Título da seção */}
             <Text style={styles.title}>Sistema de Monitoramento da Água</Text>
             
+            {/* Cartão de Análise (exibe os 4 parâmetros da última leitura) */}
             <AnalysisCard 
-              lastUpdate={getLastUpdateText()}
-              data={getAnalysisData()}
+              lastUpdate={getLastUpdateText()} // Tempo relativo da última atualização
+              data={getAnalysisData()} // Dados processados dos parâmetros
             />
             
+            {/* Cartão de Localização (exibe dispositivos conectados) */}
             <LocationCard devices={getDevicesData()} />
             
+            {/* Grid de Ações Rápidas (atalhos para outras telas) */}
             <QuickActionsGrid onActionPress={handleActionPress} />
             
+            {/* Cartão para trocar/gerenciar dispositivos */}
             <DeviceSwitchCard onSwitch={handleDeviceSwitch} />
           </View>
         </ScrollView>
       </View>
     );
   } catch (renderError) {
+    // 4. Captura erros durante a renderização (fallback de segurança)
     console.error('❌ Erro crítico na renderização:', renderError);
     return (
       <View style={[styles.container, styles.centered]}>
@@ -444,5 +501,3 @@ export const Home: React.FC = () => {
     );
   }
 };
-
-

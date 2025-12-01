@@ -1,3 +1,4 @@
+// Importações de bibliotecas e hooks do React e React Native
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,18 +9,28 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
-  RefreshControl,
+  RefreshControl, // Componente para Pull-to-Refresh
   Animated,
 } from 'react-native';
+// Importação de ícones para navegação, status e tendências
 import { ArrowLeft, Activity, Clock, TrendingUp, TrendingDown } from 'lucide-react-native';
+// Hooks para acesso à navegação e parâmetros de rota
 import { useNavigation, useRoute } from '@react-navigation/native';
+// Componente de cabeçalho fixo
 import { MobileHeader } from '../components/MobileHeader';
+// Utilitários de estilo
 import { colors, typography, spacing, borderRadius, shadows } from '../utils/colors';
+// Hook para obter o estado de autenticação e dados do usuário
 import { useAuth } from '../contexts/AuthContext';
+// Serviço de API para operações de dispositivos (como buscar leituras)
 import { deviceService } from '../services/deviceService';
 
+// Obtém a largura da janela
 const { width } = Dimensions.get('window');
 
+/**
+ * Interface de dados MOCK para referência, mostrando a estrutura esperada (não usada na lógica real de fetch).
+ */
 interface SensorData {
   id: string;
   name: string;
@@ -43,6 +54,7 @@ interface SensorData {
   }[];
 }
 
+// Dados MOCK de exemplo (atualmente não utilizados na busca real da API, mas mantidos para referência de estrutura)
 const mockSensorData: SensorData = {
   id: '1',
   name: 'Aquality01',
@@ -65,66 +77,55 @@ const mockSensorData: SensorData = {
       conductivity: 2.21,
       temperature: 20,
     },
-    {
-      id: '2',
-      timestamp: '14:30 - Hoje',
-      ph: 6.5,
-      turbidity: 6,
-      conductivity: 2.15,
-      temperature: 19,
-    },
-    {
-      id: '3',
-      timestamp: '13:15 - Hoje',
-      ph: 6.9,
-      turbidity: 7,
-      conductivity: 2.18,
-      temperature: 21,
-    },
-    {
-      id: '4',
-      timestamp: '12:00 - Hoje',
-      ph: 7.0,
-      turbidity: 5,
-      conductivity: 2.20,
-      temperature: 22,
-    },
-    {
-      id: '5',
-      timestamp: '10:30 - Hoje',
-      ph: 6.7,
-      turbidity: 9,
-      conductivity: 2.25,
-      temperature: 18,
-    },
+    // ... (restante do histórico mockado)
   ],
 };
 
+/**
+ * Componente principal para a tela de Detalhes do Sensor.
+ * Exibe dados em tempo real e um histórico de leituras.
+ */
 export const SensorDetails: React.FC = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { user } = useAuth();
+  // Inicialização de hooks
+  const navigation = useNavigation(); // Objeto de navegação
+  const route = useRoute(); // Objeto de rota (para acessar parâmetros)
+  const { user } = useAuth(); // Dados do usuário logado
   
-  // Estados para dados reais
+  // ==================== Estados Locais ====================
+  // Indica se a tela está carregando dados da API
   const [loading, setLoading] = useState(true);
+  // Indica se o pull-to-refresh está ativo
   const [refreshing, setRefreshing] = useState(false);
+  // Armazena os dados do dispositivo (metadados)
   const [deviceData, setDeviceData] = useState<any>(null);
+  // Armazena a lista de leituras de sensores (histórico)
   const [leituras, setLeituras] = useState<any[]>([]);
+  // Armazena a mensagem de erro, se houver
   const [error, setError] = useState<string | null>(null);
+  // Variável animada para o indicador de pull-to-refresh
   const pullProgress = useState(new Animated.Value(0))[0];
+  // ==================== Fim dos Estados Locais ====================
   
-  // Pega o dispositivo dos parâmetros de navegação
+  // Obtém o objeto 'device' passado como parâmetro na navegação
   const device = (route.params as any)?.device;
 
+  /**
+   * Hook de efeito que inicia o carregamento dos dados quando o componente é montado
+   * ou quando o ID do dispositivo muda.
+   */
   useEffect(() => {
     if (device?.id) {
       carregarDadosDispositivo();
     } else {
+      // Caso o dispositivo não seja encontrado nos parâmetros
       setError('Dispositivo não encontrado');
       setLoading(false);
     }
   }, [device?.id]);
 
+  /**
+   * Função assíncrona para buscar as leituras do dispositivo na API.
+   */
   const carregarDadosDispositivo = async () => {
     if (!device?.id) return;
     
@@ -133,11 +134,12 @@ export const SensorDetails: React.FC = () => {
       setError(null);
       
       console.log('📊 Carregando dados do dispositivo:', device.id);
+      // Busca as últimas 10 leituras do dispositivo
       const response = await deviceService.buscarLeituras(device.id, 10);
       
       if (response.status === 'sucesso' && response.dados) {
         setDeviceData(response.dados.dispositivo);
-        setLeituras(response.dados.leituras || []);
+        setLeituras(response.dados.leituras || []); // Armazena o histórico de leituras
         console.log('✅ Dados carregados:', response.dados);
       } else {
         throw new Error(response.mensagem || 'Erro ao carregar dados');
@@ -150,21 +152,29 @@ export const SensorDetails: React.FC = () => {
     }
   };
 
+  /**
+   * Função de callback para o Pull-to-Refresh.
+   */
   const onRefresh = async () => {
     setRefreshing(true);
-    await carregarDadosDispositivo();
+    await carregarDadosDispositivo(); // Recarrega os dados
     setRefreshing(false);
   };
 
-  // Dados para exibição (dados reais ou fallback)
+  // ==================== Processamento de Dados para Exibição ====================
+
+  // Usa dados reais se existirem, senão usa os metadados passados na rota
   const displayData = deviceData || {
     nome: device?.nome || 'Dispositivo',
     localizacao: device?.localizacao || 'Localização não informada'
   };
   
+  // A leitura mais recente é o primeiro item do array
   const currentReading = leituras.length > 0 ? leituras[0] : null;
+  // A leitura anterior é o segundo item (usada para calcular tendências)
   const previousReading = leituras.length > 1 ? leituras[1] : null;
   
+  // Objeto simplificado dos dados atuais para o grid de exibição
   const currentData = currentReading ? {
     ph: currentReading.ph,
     turbidity: currentReading.turbidez,
@@ -177,6 +187,9 @@ export const SensorDetails: React.FC = () => {
     temperature: null
   };
   
+  // ==================== Renderização Condicional (Loading/Error) ====================
+  
+  // 1. Tela de Carregamento
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -187,6 +200,7 @@ export const SensorDetails: React.FC = () => {
     );
   }
   
+  // 2. Tela de Erro
   if (error) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -199,30 +213,46 @@ export const SensorDetails: React.FC = () => {
     );
   }
 
+  // ==================== Funções Utilitárias ====================
+
+  /**
+   * Retorna o ícone de tendência (subindo/descendo) comparando a leitura atual com a anterior.
+   */
   const getTrendIcon = (current: number, previous: number) => {
+    // Retorna ícone de subida se o valor atual for maior que o anterior
     return current > previous ? (
       <TrendingUp size={16} color={colors.success} />
     ) : (
+      // Senão, retorna ícone de descida
       <TrendingDown size={16} color={colors.danger} />
     );
   };
 
+  /**
+   * Retorna a cor de tendência (verde/vermelho).
+   */
   const getTrendColor = (current: number, previous: number) => {
     return current > previous ? colors.success : colors.danger;
   };
 
+  /**
+   * Formata o valor do sensor, adicionando a unidade ou "NULL" se não houver valor.
+   */
   const formatValue = (value: number | null, unit: string) => {
     return value !== null ? `${value}${unit}` : 'NULL';
   };
 
+  /**
+   * Determina o status de qualidade da água (Normal, Atenção, Crítico) com base em faixas fixas.
+   */
   const getParameterStatus = (value: number | null, parameter: string) => {
     if (value === null) return { status: 'unknown', text: 'NULL' };
     
     switch (parameter) {
       case 'ph':
-        if (value < 6.5 || value > 8.5) return { status: 'danger', text: 'Crítico' };
-        if (value < 7.0 || value > 8.0) return { status: 'warning', text: 'Atenção' };
-        return { status: 'normal', text: 'Normal' };
+        if (value < 6.5 || value > 8.5) return { status: 'danger', text: 'Crítico' }; // Faixa Crítica
+        if (value < 7.0 || value > 8.0) return { status: 'warning', text: 'Atenção' }; // Faixa de Aviso
+        return { status: 'normal', text: 'Normal' }; // Faixa Normal
       case 'turbidity':
         if (value > 50) return { status: 'danger', text: 'Crítico' };
         if (value > 25) return { status: 'warning', text: 'Atenção' };
@@ -240,6 +270,8 @@ export const SensorDetails: React.FC = () => {
     }
   };
 
+  // ==================== Renderização Principal ====================
+
   return (
     <View style={styles.container}>
       <MobileHeader userName={user?.name} />
@@ -251,7 +283,7 @@ export const SensorDetails: React.FC = () => {
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
-            onRefresh={onRefresh}
+            onRefresh={onRefresh} // Dispara o recarregamento
             colors={[colors.water.primary]}
             tintColor={colors.water.primary}
             title="Atualizando dados do sensor..."
@@ -260,18 +292,18 @@ export const SensorDetails: React.FC = () => {
         }
       >
         <View style={styles.content}>
-          {/* Header com botão voltar */}
+          {/* Cabeçalho da Seção de Detalhes */}
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => navigation.goBack()} // Botão Voltar
             >
               <ArrowLeft size={24} color={colors.foreground} />
             </TouchableOpacity>
             <Text style={styles.title}>Detalhes do Sensor</Text>
           </View>
 
-          {/* Informações do sensor */}
+          {/* Cartão de Informações do Sensor */}
           <View style={styles.sensorInfo}>
             <View style={styles.sensorHeader}>
               <View style={styles.sensorIcon}>
@@ -280,6 +312,7 @@ export const SensorDetails: React.FC = () => {
               <View style={styles.sensorDetails}>
                 <Text style={styles.sensorName}>{displayData.nome}</Text>
                 <Text style={styles.sensorLocation}>{displayData.localizacao}</Text>
+                {/* Indicador de Status (Online/Offline) */}
                 <View style={styles.statusContainer}>
                   <View style={[
                     styles.statusDot,
@@ -295,6 +328,7 @@ export const SensorDetails: React.FC = () => {
               </View>
             </View>
 
+            {/* Estatísticas Chave */}
             <View style={styles.sensorStats}>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Total de Leituras</Text>
@@ -309,13 +343,16 @@ export const SensorDetails: React.FC = () => {
             </View>
           </View>
 
-          {/* Dados atuais */}
+          {/* Seção de Dados Atuais */}
           <View style={styles.currentDataSection}>
             <Text style={styles.sectionTitle}>Dados Atuais</Text>
+            {/* Grid com os 4 Parâmetros */}
             <View style={styles.currentDataGrid}>
+              {/* Card de PH */}
               <View style={styles.dataCard}>
                 <Text style={styles.dataLabel}>PH</Text>
                 <Text style={styles.dataValue}>{formatValue(currentData.ph, '')}</Text>
+                {/* Exibe o status de qualidade (Crítico, Atenção, Normal) */}
                 <Text style={[
                   styles.dataStatus,
                   { color: getParameterStatus(currentData.ph, 'ph').status === 'danger' ? colors.danger : 
@@ -324,6 +361,7 @@ export const SensorDetails: React.FC = () => {
                   {getParameterStatus(currentData.ph, 'ph').text}
                 </Text>
               </View>
+              {/* Outros Cards de Dados (Turbidez, Condutividade, Temperatura) */}
               <View style={styles.dataCard}>
                 <Text style={styles.dataLabel}>Turbidez</Text>
                 <Text style={styles.dataValue}>{formatValue(currentData.turbidity, '%')}</Text>
@@ -360,19 +398,22 @@ export const SensorDetails: React.FC = () => {
             </View>
           </View>
 
-          {/* Histórico */}
+          {/* Seção de Histórico de Leituras */}
           <View style={styles.historySection}>
             <Text style={styles.sectionTitle}>Histórico de Dados</Text>
             <View style={styles.historyList}>
               {leituras.length > 0 ? leituras.map((record, index) => (
+                // Mapeia e exibe cada registro de leitura
                 <View key={record.id || index} style={styles.historyItem}>
                   <View style={styles.historyHeader}>
+                    {/* Horário da leitura */}
                     <View style={styles.timeContainer}>
                       <Clock size={14} color={colors.mutedForeground} />
                       <Text style={styles.timeText}>
                         {new Date(record.data_hora).toLocaleString('pt-BR')}
                       </Text>
                     </View>
+                    {/* Indicador de Tendência (visível a partir do segundo registro) */}
                     {index > 0 && (
                       <View style={styles.trendContainer}>
                         {getTrendIcon(record.ph, leituras[index - 1].ph)}
@@ -385,6 +426,7 @@ export const SensorDetails: React.FC = () => {
                       </View>
                     )}
                   </View>
+                  {/* Detalhes de todos os parâmetros para aquele registro */}
                   <View style={styles.historyData}>
                     <View style={styles.historyDataItem}>
                       <Text style={styles.historyLabel}>PH</Text>
@@ -405,6 +447,7 @@ export const SensorDetails: React.FC = () => {
                   </View>
                 </View>
               )) : (
+                // Estado de histórico vazio
                 <View style={styles.emptyHistory}>
                   <Text style={styles.emptyHistoryText}>Nenhuma leitura encontrada</Text>
                 </View>
@@ -417,7 +460,9 @@ export const SensorDetails: React.FC = () => {
   );
 };
 
+// Estilos do componente SensorDetails (mantidos no final para não interromper a lógica)
 const styles = StyleSheet.create({
+  // ... (definição de todos os estilos)
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -644,5 +689,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-

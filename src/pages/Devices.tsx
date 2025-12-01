@@ -1,3 +1,4 @@
+// Importações de bibliotecas e hooks do React e React Native
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -13,83 +14,135 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
+// Importação de ícones da biblioteca lucide-react-native
 import { Plus, Smartphone, Wifi, WifiOff, ChevronRight, X } from 'lucide-react-native';
+// Hook para navegação entre telas
 import { useNavigation } from '@react-navigation/native';
+// Componente de cabeçalho customizado (topo da tela)
 import { MobileHeader } from '../components/MobileHeader';
+// Importação do PullToRefreshIndicator (componente visual, embora não usado diretamente com o `RefreshControl` aqui)
 import { PullToRefreshIndicator } from '../components/PullToRefreshIndicator';
+// Utilitários de estilo e constantes de design
 import { colors, typography, spacing, borderRadius, shadows } from '../utils/colors';
+// Hook para obter o estado de autenticação e dados do usuário
 import { useAuth } from '../contexts/AuthContext';
+// Serviço de API para operações de dispositivos (listar, conectar)
 import { deviceService, Dispositivo } from '../services/deviceService';
+// Função para tratar e formatar erros de API de forma consistente
 import { handleApiError } from '../services/api';
 
+// Obtém a largura da tela para dimensionamento responsivo (usado no modal)
 const { width } = Dimensions.get('window');
 
+/**
+ * Componente funcional principal para a tela de gerenciamento de Dispositivos.
+ */
 export const Devices: React.FC = () => {
+  // Inicializa o hook de navegação
   const navigation = useNavigation();
+  // Obtém o objeto de usuário do contexto de autenticação
   const { user } = useAuth();
   
+  // ==================== Estados Locais ====================
+  // Armazena a lista de dispositivos do usuário
   const [devices, setDevices] = useState<Dispositivo[]>([]);
+  // Indica se a tela está carregando os dados pela primeira vez
   const [isLoading, setIsLoading] = useState(true);
+  // Indica se a tela está em processo de atualização (pull-to-refresh)
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Controla a visibilidade do modal de adicionar dispositivo
   const [showAddModal, setShowAddModal] = useState(false);
+  // Armazena o código de verificação digitado no modal
   const [codigoDispositivo, setCodigoDispositivo] = useState('');
+  // Indica se a requisição de conexão de dispositivo está em andamento
   const [conectandoDispositivo, setConectandoDispositivo] = useState(false);
+  // Variável animada para controle visual do pull-to-refresh (embora o `RefreshControl` nativo seja usado abaixo)
   const pullProgress = useState(new Animated.Value(0))[0];
+  // ==================== Fim dos Estados Locais ====================
 
+  /**
+   * Hook de efeito que é executado uma vez (ou quando o usuário muda)
+   * para iniciar o carregamento dos dispositivos.
+   */
   useEffect(() => {
     if (user) {
       carregarDispositivos();
     }
   }, [user]);
 
+  /**
+   * Função assíncrona para buscar a lista de dispositivos do usuário na API.
+   */
   const carregarDispositivos = async () => {
-    if (!user) return;
-    
+    if (!user) return; // Não carrega se não houver usuário
+
     try {
+      // Chama o serviço de API para obter a lista
       const response = await deviceService.listarDispositivos(user.id);
       
       if (response.status === 'sucesso' && response.dados) {
-        setDevices(response.dados);
+        setDevices(response.dados); // Atualiza o estado com os dispositivos
       } else {
+        // Trata erros de resposta da API
         console.error('Erro ao carregar dispositivos:', response.mensagem);
         Alert.alert('Erro', 'Não foi possível carregar os dispositivos.');
       }
     } catch (error) {
+      // Trata erros de conexão ou inesperados
       console.error('Erro ao carregar dispositivos:', handleApiError(error));
       Alert.alert('Erro', 'Não foi possível carregar os dispositivos. Tente novamente.');
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Finaliza o estado de carregamento inicial
     }
   };
 
+  /**
+   * Função chamada quando o usuário aciona o Pull-to-Refresh.
+   */
   const onRefresh = async () => {
-    setIsRefreshing(true);
-    await carregarDispositivos();
-    setIsRefreshing(false);
+    setIsRefreshing(true); // Inicia o indicador de refresh
+    await carregarDispositivos(); // Recarrega os dados
+    setIsRefreshing(false); // Para o indicador de refresh
   };
 
+  /**
+   * Função utilitária para retornar o ícone de status (Wi-Fi on/off).
+   */
   const getStatusIcon = (status: string) => {
     return status === 'online' ? (
-      <Wifi size={16} color={colors.success} />
+      <Wifi size={16} color={colors.success} /> // Ícone de Wi-Fi verde para Online
     ) : (
-      <WifiOff size={16} color={colors.mutedForeground} />
+      <WifiOff size={16} color={colors.mutedForeground} /> // Ícone de Wi-Fi riscado para Offline
     );
   };
 
+  /**
+   * Função utilitária para retornar a cor de status.
+   */
   const getStatusColor = (status: string) => {
     return status === 'online' ? colors.success : colors.mutedForeground;
   };
 
+  /**
+   * Função para navegar para a tela de detalhes de um dispositivo.
+   */
   const handleDevicePress = (device: Dispositivo) => {
-    // Use any to bypass navigation typing for now
+    // Navega para a tela 'SensorDetails', passando o objeto do dispositivo como parâmetro
     (navigation as any).navigate('SensorDetails', { device });
   };
 
+  /**
+   * Função para abrir o modal de adição de dispositivo e resetar o campo de código.
+   */
   const handleAddDevice = () => {
     setShowAddModal(true);
     setCodigoDispositivo('');
   };
 
+  /**
+   * Função assíncrona para conectar um novo dispositivo à conta do usuário.
+   * Envolve validação e chamada direta à API de conexão.
+   */
   const conectarDispositivo = async () => {
     if (!user?.id || !codigoDispositivo.trim()) {
       Alert.alert('Erro', 'Digite o código do dispositivo.');
@@ -97,8 +150,9 @@ export const Devices: React.FC = () => {
     }
 
     try {
-      setConectandoDispositivo(true);
+      setConectandoDispositivo(true); // Ativa o loading
       
+      // Faz a chamada POST direta para a API de conexão
       const response = await fetch('http://tcc3eetecgrupo5t1.hospedagemdesites.ws/app/api_mobile/dispositivos/conectar.php', {
         method: 'POST',
         headers: {
@@ -113,6 +167,7 @@ export const Devices: React.FC = () => {
       const data = await response.json();
       
       if (data.status === 'sucesso') {
+        // Mostra alerta de sucesso e recarrega a lista
         Alert.alert(
           'Sucesso!', 
           `Dispositivo "${data.dados.dispositivo.nome}" conectado com sucesso!`,
@@ -121,22 +176,26 @@ export const Devices: React.FC = () => {
               text: 'OK',
               onPress: () => {
                 setShowAddModal(false);
-                carregarDispositivos(); // Recarrega a lista
+                carregarDispositivos(); 
               }
             }
           ]
         );
       } else {
+        // Mostra alerta de erro retornado pela API
         Alert.alert('Erro', data.mensagem || 'Erro ao conectar dispositivo.');
       }
     } catch (error) {
+      // Mostra alerta de erro de rede/servidor
       console.error('Erro ao conectar dispositivo:', error);
       Alert.alert('Erro', 'Erro interno. Tente novamente.');
     } finally {
-      setConectandoDispositivo(false);
+      setConectandoDispositivo(false); // Desativa o loading
     }
   };
 
+  // ==================== Renderização Condicional de Carregamento ====================
+  // Se a tela estiver carregando, exibe um indicador de loading no centro
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -146,10 +205,13 @@ export const Devices: React.FC = () => {
     );
   }
 
+  // ==================== Estrutura de Renderização Principal ====================
   return (
     <View style={styles.container}>
+      {/* Cabeçalho do aplicativo, com nome do usuário */}
       <MobileHeader userName={user?.name || 'Usuário'} />
       
+      {/* ScrollView principal com funcionalidade Pull-to-Refresh */}
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -157,7 +219,7 @@ export const Devices: React.FC = () => {
         refreshControl={
           <RefreshControl 
             refreshing={isRefreshing} 
-            onRefresh={onRefresh}
+            onRefresh={onRefresh} // Chama a função de recarregar
             colors={[colors.water.primary]}
             tintColor={colors.water.primary}
             title="Atualizando dispositivos..."
@@ -166,6 +228,7 @@ export const Devices: React.FC = () => {
         }
       >
         <View style={styles.content}>
+          {/* Cabeçalho da página (Título e Botão de Adicionar) */}
           <View style={styles.header}>
             <Text style={styles.title}>Meus Dispositivos</Text>
             <TouchableOpacity style={styles.addButton} onPress={handleAddDevice}>
@@ -177,18 +240,21 @@ export const Devices: React.FC = () => {
             Gerencie seus sensores de qualidade da água
           </Text>
 
+          {/* Renderização condicional da lista de dispositivos */}
           {devices.length === 0 ? (
+            // Exibe estado vazio se não houver dispositivos
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>Nenhum dispositivo encontrado</Text>
               <Text style={styles.emptyStateSubtext}>Adicione um dispositivo A-Quality para começar</Text>
             </View>
           ) : (
+            // Lista os cartões de cada dispositivo
             <View style={styles.devicesList}>
               {devices.map((device) => (
                 <TouchableOpacity
                   key={device.id}
                   style={styles.deviceCard}
-                  onPress={() => handleDevicePress(device)}
+                  onPress={() => handleDevicePress(device)} // Navega para detalhes
                   activeOpacity={0.7}
                 >
                   <View style={styles.deviceHeader}>
@@ -201,6 +267,7 @@ export const Devices: React.FC = () => {
                         <Text style={styles.deviceLocation}>{device.localizacao}</Text>
                       </View>
                     </View>
+                    {/* Exibe o status (Online/Offline) */}
                     <View style={styles.statusContainer}>
                       {getStatusIcon(device.status)}
                       <Text style={[
@@ -212,22 +279,24 @@ export const Devices: React.FC = () => {
                     </View>
                   </View>
 
+                  {/* Estatísticas resumidas (Última Atualização e Bateria) */}
                   <View style={styles.deviceStats}>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>Última atualização</Text>
-                      <Text style={styles.statValue}>{device.tempo_offline || 'Nunca'}</Text>
+                      <Text style={styles.statValue}>{device.estatisticas.tempo_offline || 'Nunca'}</Text>
                     </View>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>Bateria</Text>
                       <Text style={[
                         styles.statValue,
-                        { color: 94 > 20 ? colors.success : colors.danger }
+                        { color: 94 > 20 ? colors.success : colors.danger } // Condicional de cor
                       ]}>
-                        94%
+                        94% {/* Valor Fixo (mockado) */}
                       </Text>
                     </View>
                   </View>
 
+                  {/* Barra visual de Bateria */}
                   <View style={styles.batteryBar}>
                     <View 
                       style={[
@@ -240,6 +309,7 @@ export const Devices: React.FC = () => {
                     />
                   </View>
 
+                  {/* Rodapé do cartão com link para detalhes */}
                   <View style={styles.deviceFooter}>
                     <Text style={styles.viewDetailsText}>Ver detalhes</Text>
                     <ChevronRight size={16} color={colors.water.primary} />
@@ -251,7 +321,7 @@ export const Devices: React.FC = () => {
         </View>
       </ScrollView>
       
-      {/* Modal para Adicionar Dispositivo */}
+      {/* ==================== Modal para Adicionar Dispositivo ==================== */}
       <Modal
         visible={showAddModal}
         transparent={true}
@@ -274,6 +344,7 @@ export const Devices: React.FC = () => {
               Digite o código de verificação do seu dispositivo A-Quality:
             </Text>
             
+            {/* Campo de input para o código */}
             <TextInput
               style={styles.codeInput}
               value={codigoDispositivo}
@@ -285,6 +356,7 @@ export const Devices: React.FC = () => {
             />
             
             <View style={styles.modalButtons}>
+              {/* Botão Cancelar */}
               <TouchableOpacity 
                 style={styles.cancelButton}
                 onPress={() => setShowAddModal(false)}
@@ -292,9 +364,10 @@ export const Devices: React.FC = () => {
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               
+              {/* Botão Conectar (com loading e desabilitado durante a conexão) */}
               <TouchableOpacity 
                 style={[styles.connectButton, conectandoDispositivo && styles.disabledButton]}
-                onPress={conectarDispositivo}
+                onPress={conectarDispositivo} // Chama a função de conexão
                 disabled={conectandoDispositivo}
               >
                 {conectandoDispositivo ? (
@@ -307,11 +380,16 @@ export const Devices: React.FC = () => {
           </View>
         </View>
       </Modal>
+      {/* Fim do Modal */}
     </View>
   );
 };
 
+// ==================== Definição de Estilos ====================
 const styles = StyleSheet.create({
+  // Estilos detalhados para o layout, cartões de dispositivo, e o modal de adição.
+  // Utiliza as constantes de design importadas (colors, typography, spacing, etc.).
+  // ... (restante dos estilos)
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -549,3 +627,4 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+// ==================== Fim da Definição de Estilos ====================

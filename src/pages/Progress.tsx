@@ -17,7 +17,7 @@ import { MobileHeader } from '../components/MobileHeader';
 
 const { width } = Dimensions.get('window');
 
-// Add shadows object at the top to avoid TypeScript error
+// Adicionando o objeto de sombras na parte superior para evitar erros do TypeScript
 const shadows = {
   card: {
     shadowColor: '#3B82F6',
@@ -134,7 +134,7 @@ export const Progress: React.FC = () => {
       .reverse() as number[]; // Inverter para mostrar da mais antiga para a mais recente
 
     // =======================================================================
-    // A ALTERAÇÃO FOI FEITA AQUI
+    //  ALTERAÇÃO FEITA AQUI
     // Agora, as legendas são criadas com um intervalo para evitar sobreposição.
     const labelInterval = 3; // Mostrar uma legenda a cada 3 pontos de dados.
     const labels = readings
