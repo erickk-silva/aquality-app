@@ -1,4 +1,4 @@
-# 🎯 Resumo das Alterações - Sistema Water Sense Mobile
+# 🎯 Resumo das Alterações - Sistema AqualityMobile
 
 ## ✅ CONFIGURAÇÃO COMPLETA PARA PRODUÇÃO
 

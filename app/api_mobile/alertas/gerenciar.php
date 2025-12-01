@@ -2,6 +2,7 @@
 /**
  * API para gerenciar alertas e notificações
  * Endpoints: GET, POST, PUT, DELETE
+ * Ainda em versao inicial
  */
 
 header('Content-Type: application/json; charset=utf-8');

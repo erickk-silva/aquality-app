@@ -1,4 +1,4 @@
-# Sistema Water Sense Mobile - Relatório de Implementação
+# Sistema AqualityMobile - Relatório de Implementação
 
 ## 🎯 Resumo Executivo
 

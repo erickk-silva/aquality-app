@@ -54,4 +54,6 @@ Consulte a pasta `docs/` para:
 
 **Projeto TCC - ETEC**
 
-Criado por: Henzo, Fellipe, Matheus Henrique, Victor, Heitor, Erick Dionisio, Luiz Fernando, João Pedro
+Aplicativo Desenvolvido por: Erick Dionisio (2025)
+
+Grupo formado por: Henzo, Fellipe, Matheus Henrique, Victor, Heitor, Erick Dionisio, Luiz Fernando, João Pedro

@@ -2,6 +2,7 @@
 /**
  * API para processar alertas automaticamente
  * Verifica regras e cria alertas quando necessário
+ * Ainda em versao inicial
  */
 
 header('Content-Type: application/json; charset=utf-8');

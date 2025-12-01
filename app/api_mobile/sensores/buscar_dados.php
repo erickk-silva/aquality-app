@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Buscar Dados dos Sensores - Water Sense Mobile
+ * API para Buscar Dados dos Sensores - AqualityMobile
  * Endpoint para o app mobile obter leituras dos dispositivos
  * Adaptado para a estrutura do banco existente
  */

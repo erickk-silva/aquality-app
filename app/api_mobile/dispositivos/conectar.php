@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Conectar Dispositivo - Water Sense Mobile
+ * API para Conectar Dispositivo - AqualityMobile
  * Permite ao usuário conectar um dispositivo à sua conta usando código de verificação
  */
 

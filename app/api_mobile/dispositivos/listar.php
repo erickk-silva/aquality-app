@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Listar Dispositivos do Usuário - Water Sense Mobile
+ * API para Listar Dispositivos do Usuário - aqualityMobile
  * Retorna todos os dispositivos conectados à conta do usuário
  */
 

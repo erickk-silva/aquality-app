@@ -2,6 +2,7 @@
 /**
  * API para gerenciar regras de alerta
  * Endpoints: GET, POST, PUT, DELETE
+ * Ainda em versão inicial
  */
 
 header('Content-Type: application/json; charset=utf-8');

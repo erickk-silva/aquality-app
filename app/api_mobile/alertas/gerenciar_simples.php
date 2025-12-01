@@ -1,6 +1,7 @@
 <?php
 /**
- * API Simplificada para Alertas - Versão Funcional
+ * API simplificada para Alertas - Versão Funcional
+ * Ainda em versão incial
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -34,7 +35,7 @@ try {
                 throw new Exception('ID do usuário é obrigatório');
             }
             
-            // Buscar alertas
+            // Buscar alertass
             $sql = "SELECT 
                         a.id,
                         a.tipo,
@@ -232,4 +233,3 @@ function calcularTempoDecorrido($data_criacao) {
 
 $conexao->close();
 ?>
-

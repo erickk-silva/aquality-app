@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Upload de Foto de Perfil - Water Sense Mobile
+ * API para Upload de Foto de Perfil - AqualityMobile
  * Permite fazer upload de imagens para foto de perfil
  */
 

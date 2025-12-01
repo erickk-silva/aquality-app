@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Buscar Leituras de um Dispositivo - Water Sense Mobile
+ * API para Buscar Leituras de um Dispositivo - AqualityMobile
  * Retorna as últimas leituras de um dispositivo específico
  */
 

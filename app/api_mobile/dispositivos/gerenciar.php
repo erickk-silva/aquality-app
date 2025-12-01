@@ -1,6 +1,6 @@
 <?php
 /**
- * API de Gerenciamento de Dispositivos - Water Sense Mobile
+ * API de Gerenciamento de Dispositivos - AqualityMobile
  * Endpoints para CRUD de dispositivos ESP32
  * Adaptado para a estrutura do banco existente
  */

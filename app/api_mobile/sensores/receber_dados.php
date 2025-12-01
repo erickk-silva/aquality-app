@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Receber Dados dos Sensores ESP32 - Water Sense Mobile
+ * API para Receber Dados dos Sensores ESP32 - AqualityMobile
  * Endpoint principal para o dispositivo A-Quality enviar leituras
  * Adaptado para a estrutura do banco existente
  */

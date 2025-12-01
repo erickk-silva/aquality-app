@@ -1,6 +1,6 @@
 <?php
 /**
- * API para Atualização de Perfil do Usuário - Water Sense Mobile (CORRIGIDA)
+ * API para Atualização de Perfil do Usuário - AqualityMobile (CORRIGIDA)
  * Compatível com estrutura real do banco
  */
 

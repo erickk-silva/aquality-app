@@ -1,7 +1,7 @@
 <?php
 /**
  * Arquivo de configuração do banco de dados - PRODUÇÃO
- * Water Sense Mobile - Sistema de Monitoramento de Qualidade da Água
+ * AqualityMobile - Sistema de Monitoramento de Qualidade da Água
  * Configurado para hospedagem remota
  */
 
@@ -16,7 +16,7 @@ date_default_timezone_set('America/Sao_Paulo');
 
 // Configurações gerais da API
 define('API_VERSION', '1.0');
-define('API_BASE_URL', 'http://tcc3eetecgrupo5t1.hospedagemdesites.ws/app/api_mobile/');
+define('API_BASE_URL', 'https://tcc3eetecgrupo5t1.hospedagemdesites.ws/web/app/api_mobile/');
 
 // Configurações de segurança
 define('JWT_SECRET_KEY', 'water_sense_tcc_grupo5_2025_secret_key');
@@ -35,7 +35,7 @@ function conectar_banco() {
     
     if ($conexao === null) {
         try {
-            // Configurações específicas para MySQL remoto
+            // Configurações específicas para o MySQL remoto
             $conexao = new mysqli(DB_SERVIDOR, DB_USUARIO, DB_SENHA, DB_BANCO);
             
             // Definir charset para UTF-8 (importante para acentos)
@@ -95,7 +95,7 @@ function log_error($message, $context = []) {
  */
 function configurar_cors() {
     // Permite acesso de qualquer origem (para desenvolvimento)
-    // Em produção, especifique o domínio do seu app
+    // Em produção especifique o domínio do seu app
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
@@ -110,7 +110,7 @@ function configurar_cors() {
 
 /**
  * Função para verificar se as tabelas existem no banco
- * Útil para diagnóstico de problemas
+ * para diagnóstico de problemas
  */
 function verificar_estrutura_banco() {
     $conexao = conectar_banco();
@@ -144,8 +144,8 @@ function verificar_estrutura_banco() {
 }
 
 /**
- * Função para resposta padronizada da API
- * Mantém consistência em todas as respostas
+ * Fnção para resposta padronizada da API
+ * mantém consistência em todas as respostas
  */
 function enviar_resposta($codigo_http, $status, $mensagem, $dados = null) {
     http_response_code($codigo_http);
@@ -179,7 +179,7 @@ ini_set('log_errors', 1);
 // Configurar timezone do PHP
 ini_set('date.timezone', 'America/Sao_Paulo');
 
-// Definir encoding padrão
+// Definir encoding 
 ini_set('default_charset', 'UTF-8');
 
 ?>
